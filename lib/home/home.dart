@@ -11,7 +11,7 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   bool ifDataLoading = false;
-  bool isListReady = false;
+  int contentLength = 0;
   String value;
 
   @override
@@ -102,42 +102,19 @@ class _HomeState extends State<Home> {
     );
   }
 
-  void getData(String keyword) async {
-    setState(() {
-      ifDataLoading = true;
-    });
-
-    ApiModel apiModel = ApiModel();
-    var getData = await apiModel.get(
-        'https://pixabay.com/api/?key=25624959-6b5754ac0b492f2cae36197a8&q=$keyword&image_type=photo');
-    print(keyword);
-    if (getData != false) {
-      Singleton.singleton.imageResults = imageResultsFromJson(getData.body);
-      isListReady = true;
-      // print(Singleton.singleton.imageResults.hits[0]);
-    } else {}
-    // contentSorting();
-    Future.delayed(Duration(seconds: 2), () {
-      setState(() {
-        ifDataLoading = false;
-      });
-    });
-  }
-
   Widget listView() {
     return Expanded(
       child: Visibility(
         child: Container(
-          height: 200,
           color: Colors.blueGrey.shade900,
           child: LazyLoadScrollView(
             onEndOfPage: () {
-              print("end of page");
+              print("end of page *******");
+              contentCounter();
             },
-            scrollOffset: 300,
-            // onEndOfPage: () {},
+            scrollOffset: MediaQuery.of(context).size.height.toInt() -20,
             child: ListView.builder(
-              itemCount: Singleton.singleton.imageResults.hits.length,
+              itemCount: contentLength,
               scrollDirection: Axis.vertical,
               physics: AlwaysScrollableScrollPhysics(),
               itemBuilder: (context, index) {
@@ -153,8 +130,8 @@ class _HomeState extends State<Home> {
                     // );
                   },
                   child: Container(
-                    margin:
-                        EdgeInsets.only(top: 5, bottom: 5, left: 10, right: 10),
+                    height: 200,
+                    margin: EdgeInsets.only(top: 5, bottom: 5, left: 10, right: 10),
                     child: Image.network(
                       Singleton.singleton.imageResults.hits[index].webformatUrl,
                       fit: BoxFit.cover,
@@ -187,5 +164,40 @@ class _HomeState extends State<Home> {
         ),
       ),
     );
+  }
+
+  void getData(String keyword) async {
+    setState(() {
+      ifDataLoading = true;
+    });
+
+    ApiModel apiModel = ApiModel();
+    var getData = await apiModel.get(
+        'https://pixabay.com/api/?key=25624959-6b5754ac0b492f2cae36197a8&q=$keyword&image_type=photo');
+    print(keyword);
+    if (getData != false) {
+      Singleton.singleton.imageResults = imageResultsFromJson(getData.body);
+      if (Singleton.singleton.imageResults.hits.length > 5) {
+        contentLength = 5;
+      } else {
+        contentLength = Singleton.singleton.imageResults.hits.length;
+      }
+    } 
+    Future.delayed(Duration(seconds: 2), () {
+      setState(() {
+        ifDataLoading = false;
+      });
+    });
+  }
+
+  void contentCounter() {
+    int totalLength = Singleton.singleton.imageResults.hits.length;
+    var temLength = contentLength + 5;
+    if (temLength > totalLength) {
+      contentLength = totalLength;
+    } else {
+      contentLength = temLength;
+    }
+    setState(() {});
   }
 }
