@@ -3,6 +3,7 @@ import 'package:excelledia/model/model.dart';
 import 'package:excelledia/model/singleton.dart';
 import 'package:flutter/material.dart';
 import 'package:lazy_load_scrollview/lazy_load_scrollview.dart';
+import 'package:photo_view/photo_view.dart';
 
 class Home extends StatefulWidget {
   @override
@@ -11,6 +12,8 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   bool ifDataLoading = false;
+  bool photoViewCheck = false;
+  String photoViewUrl = "";
   int contentLength = 0;
   String value;
 
@@ -37,20 +40,19 @@ class _HomeState extends State<Home> {
   Widget body() {
     return Stack(
       children: [
-        Center(
-          child: Text("Home"),
-        ),
         Column(
           children: [
             searchbarwithButton(),
             listView(),
           ],
         ),
+        photoView(),
         loadingIndicator(),
       ],
     );
   }
 
+//loading indicator
   Widget loadingIndicator() {
     return Visibility(
       visible: ifDataLoading,
@@ -63,6 +65,7 @@ class _HomeState extends State<Home> {
     );
   }
 
+// search bar with button
   Widget searchbarwithButton() {
     return Padding(
       padding: const EdgeInsets.all(8.0),
@@ -102,6 +105,7 @@ class _HomeState extends State<Home> {
     );
   }
 
+//main list view
   Widget listView() {
     return Expanded(
       child: Visibility(
@@ -109,10 +113,10 @@ class _HomeState extends State<Home> {
           color: Colors.blueGrey.shade900,
           child: LazyLoadScrollView(
             onEndOfPage: () {
-              print("end of page *******");
+              print("end of page");
               contentCounter();
             },
-            scrollOffset: MediaQuery.of(context).size.height.toInt() -20,
+            scrollOffset: MediaQuery.of(context).size.height.toInt() - 20,
             child: ListView.builder(
               itemCount: contentLength,
               scrollDirection: Axis.vertical,
@@ -120,18 +124,16 @@ class _HomeState extends State<Home> {
               itemBuilder: (context, index) {
                 return GestureDetector(
                   onTap: () {
-                    // Navigator.push(
-                    //   context,
-                    //   MaterialPageRoute(
-                    //     builder: (context) => DetailsPage(
-                    //       content: Singleton.singleton.sortedList[key][index],
-                    //     ),
-                    //   ),
-                    // );
+                    setState(() {
+                      photoViewCheck = true;
+                      photoViewUrl = Singleton
+                          .singleton.imageResults.hits[index].webformatUrl;
+                    });
                   },
                   child: Container(
                     height: 200,
-                    margin: EdgeInsets.only(top: 5, bottom: 5, left: 10, right: 10),
+                    margin:
+                        EdgeInsets.only(top: 5, bottom: 5, left: 10, right: 10),
                     child: Image.network(
                       Singleton.singleton.imageResults.hits[index].webformatUrl,
                       fit: BoxFit.cover,
@@ -166,6 +168,7 @@ class _HomeState extends State<Home> {
     );
   }
 
+//Api call to get image
   void getData(String keyword) async {
     setState(() {
       ifDataLoading = true;
@@ -182,7 +185,7 @@ class _HomeState extends State<Home> {
       } else {
         contentLength = Singleton.singleton.imageResults.hits.length;
       }
-    } 
+    }
     Future.delayed(Duration(seconds: 2), () {
       setState(() {
         ifDataLoading = false;
@@ -190,6 +193,7 @@ class _HomeState extends State<Home> {
     });
   }
 
+//lazy loading counter
   void contentCounter() {
     int totalLength = Singleton.singleton.imageResults.hits.length;
     var temLength = contentLength + 5;
@@ -199,5 +203,49 @@ class _HomeState extends State<Home> {
       contentLength = temLength;
     }
     setState(() {});
+  }
+
+//Photo view on Tapping Image
+  photoView() {
+    return Visibility(
+      visible: photoViewCheck,
+      child: Stack(
+        children: [
+          Container(
+              child: PhotoView(
+            backgroundDecoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.7),
+            ),
+            imageProvider: NetworkImage(
+              photoViewUrl,
+            ),
+          )),
+          closeButton()
+        ],
+      ),
+    );
+  }
+
+//Close button to close photo view
+  closeButton() {
+    return Align(
+      alignment: AlignmentDirectional.bottomCenter,
+      child: Container(
+        margin: EdgeInsets.only(bottom: 20),
+        child: IconButton(
+          icon: Icon(
+            Icons.close_rounded,
+            color: Colors.white,
+            size: 50,
+          ),
+          onPressed: () {
+            setState(() {
+              photoViewCheck = false;
+              photoViewUrl = "";
+            });
+          },
+        ),
+      ),
+    );
   }
 }

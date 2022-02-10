@@ -1,12 +1,9 @@
-// To parse this JSON data, do
-//
-//     final imageResults = imageResultsFromJson(jsonString);
+//Api data Model
 
 import 'dart:convert';
 
 ImageResults imageResultsFromJson(String str) => ImageResults.fromJson(json.decode(str));
 
-String imageResultsToJson(ImageResults data) => json.encode(data.toJson());
 
 class ImageResults {
     ImageResults({
@@ -25,11 +22,6 @@ class ImageResults {
         hits: List<Hit>.from(json["hits"].map((x) => Hit.fromJson(x))),
     );
 
-    Map<String, dynamic> toJson() => {
-        "total": total,
-        "totalHits": totalHits,
-        "hits": List<dynamic>.from(hits.map((x) => x.toJson())),
-    };
 }
 
 class Hit {
