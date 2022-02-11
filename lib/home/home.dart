@@ -17,6 +17,8 @@ class _HomeState extends State<Home> {
   int contentLength = 0;
   String value;
 
+  TextEditingController _controller = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -46,9 +48,23 @@ class _HomeState extends State<Home> {
             listView(),
           ],
         ),
+        contentLength == 0 ? searchText() : Container(),
         photoView(),
         loadingIndicator(),
       ],
+    );
+  }
+
+  Widget searchText() {
+    return Align(
+      alignment: Alignment.center,
+      child: Text(
+        "Enter the search keyword",
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 20,
+        ),
+      ),
     );
   }
 
@@ -57,9 +73,9 @@ class _HomeState extends State<Home> {
     return Visibility(
       visible: ifDataLoading,
       child: Container(
-        color: Colors.white,
+        color: Colors.blueGrey.shade900,
         child: Center(
-          child: CircularProgressIndicator(),
+          child: CircularProgressIndicator(valueColor:AlwaysStoppedAnimation<Color>(Colors.white),),
         ),
       ),
     );
@@ -78,6 +94,8 @@ class _HomeState extends State<Home> {
           children: [
             Expanded(
               child: TextField(
+                controller: _controller,
+                textInputAction: TextInputAction.search,
                 decoration: InputDecoration(
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.only(left: 10),
@@ -87,16 +105,15 @@ class _HomeState extends State<Home> {
                 onChanged: (value) {
                   this.value = value;
                 },
+                onSubmitted: (value) {
+                  onSubmitted();
+                },
               ),
             ),
             IconButton(
-              icon: Icon(Icons.search),
+              icon: Icon(contentLength == 0 ? Icons.search : Icons.cancel),
               onPressed: () {
-                FocusScope.of(context).requestFocus(FocusNode());
-                setState(() {
-                  ifDataLoading = true;
-                  getData(value);
-                });
+                contentLength == 0 ? onSubmitted() : clearSearch();
               },
             ),
           ],
@@ -124,6 +141,7 @@ class _HomeState extends State<Home> {
               itemBuilder: (context, index) {
                 return GestureDetector(
                   onTap: () {
+                    FocusScope.of(context).requestFocus(FocusNode());
                     setState(() {
                       photoViewCheck = true;
                       photoViewUrl = Singleton
@@ -150,7 +168,7 @@ class _HomeState extends State<Home> {
                               color: Colors.transparent,
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: CircularProgressIndicator(),
+                            child: CircularProgressIndicator(valueColor:AlwaysStoppedAnimation<Color>(Colors.white),),
                           ),
                         );
                       },
@@ -166,43 +184,6 @@ class _HomeState extends State<Home> {
         ),
       ),
     );
-  }
-
-//Api call to get image
-  void getData(String keyword) async {
-    setState(() {
-      ifDataLoading = true;
-    });
-
-    ApiModel apiModel = ApiModel();
-    var getData = await apiModel.get(
-        'https://pixabay.com/api/?key=25624959-6b5754ac0b492f2cae36197a8&q=$keyword&image_type=photo');
-    print(keyword);
-    if (getData != false) {
-      Singleton.singleton.imageResults = imageResultsFromJson(getData.body);
-      if (Singleton.singleton.imageResults.hits.length > 5) {
-        contentLength = 5;
-      } else {
-        contentLength = Singleton.singleton.imageResults.hits.length;
-      }
-    }
-    Future.delayed(Duration(seconds: 2), () {
-      setState(() {
-        ifDataLoading = false;
-      });
-    });
-  }
-
-//lazy loading counter
-  void contentCounter() {
-    int totalLength = Singleton.singleton.imageResults.hits.length;
-    var temLength = contentLength + 5;
-    if (temLength > totalLength) {
-      contentLength = totalLength;
-    } else {
-      contentLength = temLength;
-    }
-    setState(() {});
   }
 
 //Photo view on Tapping Image
@@ -247,5 +228,60 @@ class _HomeState extends State<Home> {
         ),
       ),
     );
+  }
+
+//Api call to get image
+  void getData(String keyword) async {
+    setState(() {
+      ifDataLoading = true;
+    });
+
+    ApiModel apiModel = ApiModel();
+    var getData = await apiModel.get(
+        'https://pixabay.com/api/?key=25624959-6b5754ac0b492f2cae36197a8&q=$keyword&image_type=photo');
+    print(keyword);
+    if (getData != false) {
+      Singleton.singleton.imageResults = imageResultsFromJson(getData.body);
+      if (Singleton.singleton.imageResults.hits.length > 5) {
+        contentLength = 5;
+      } else {
+        contentLength = Singleton.singleton.imageResults.hits.length;
+      }
+    }
+    Future.delayed(Duration(seconds: 2), () {
+      setState(() {
+        ifDataLoading = false;
+      });
+    });
+  }
+
+  void onSubmitted() {
+    FocusScope.of(context).requestFocus(FocusNode());
+    setState(() {
+      ifDataLoading = true;
+      getData(value);
+    });
+  }
+
+  void clearSearch() {
+    setState(() {
+      FocusScope.of(context).requestFocus(FocusNode());
+      contentLength = 0;
+      photoViewCheck = false;
+      photoViewUrl = "";
+      _controller.clear();
+    });
+  }
+
+//lazy loading counter
+  void contentCounter() {
+    int totalLength = Singleton.singleton.imageResults.hits.length;
+    var temLength = contentLength + 5;
+    if (temLength > totalLength) {
+      contentLength = totalLength;
+    } else {
+      contentLength = temLength;
+    }
+    setState(() {});
   }
 }
